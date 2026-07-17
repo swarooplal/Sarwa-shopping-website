@@ -28,12 +28,16 @@ const NAV = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
+const STAFF_ROLES = ['ADMIN', 'MANAGER', 'EDITOR', 'STAFF'];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, fetchMe, logout } = useAuth();
+  const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem('sarwa_admin_dark') : null;
@@ -42,6 +46,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       document.documentElement.classList.add('dark');
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setAuthChecked(true);
+      return;
+    }
+    if (!user) {
+      fetchMe()
+        .catch(() => {})
+        .finally(() => setAuthChecked(true));
+    } else {
+      setAuthChecked(true);
+    }
+  }, [user, fetchMe, isLoginPage]);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    if (authChecked && (!user || !STAFF_ROLES.includes(user.role))) {
+      router.replace('/admin/login');
+    }
+  }, [authChecked, user, isLoginPage, router]);
+
+  if (!isLoginPage && (!authChecked || !user || !STAFF_ROLES.includes(user.role))) {
+    return (
+      <div className="grid h-screen place-items-center bg-ivory-50">
+        <p className="text-sm uppercase tracking-[0.2em] text-charcoal-300">Authenticating…</p>
+      </div>
+    );
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   const toggleDark = () => {
     const next = !dark;
