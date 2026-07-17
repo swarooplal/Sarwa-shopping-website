@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sarwa/shared": ["./packages/shared/src"],
+      "@sarwa/shared/*": ["./packages/shared/src/*"],
+      "@sarwa/ui": ["./packages/ui/src"],
+      "@sarwa/ui/*": ["./packages/ui/src/*"],
+      "@sarwa/db": ["./packages/prisma/src"]
+    }
+  }
+}

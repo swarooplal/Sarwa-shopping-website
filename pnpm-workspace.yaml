@@ -1,0 +1,15 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+public-hoist-pattern:
+  - '*tailwindcss*'
+  - '*postcss*'
+  - '*autoprefixer*'
+  - '@tailwindcss/*'
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - 'prisma'
+  - 'esbuild'
