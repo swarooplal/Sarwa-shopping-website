@@ -18,3 +18,6 @@ uploads/*
 .npm-cache-fresh
 apps/frontend/.next
 apps/backend/dist
+packages/prisma/.npm-cache
+packages/prisma/dev.db
+packages/prisma/dev.db-journal
