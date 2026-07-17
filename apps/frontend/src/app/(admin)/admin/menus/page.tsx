@@ -331,6 +331,7 @@ function MenuForm({
 }) {
   const save = useSaveMenu();
   const { data: categoriesData } = useCategories();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const flatParents = useMemo(() => {
     const out: { id: string; label: string; depth: number }[] = [];
@@ -344,14 +345,32 @@ function MenuForm({
     return out;
   }, [existing, initial?.id]);
 
+  const nextSortOrder = useMemo(() => {
+    if (initial?.id) return initial.sortOrder ?? 0;
+    const siblings = existing.filter((m) => (m.parentId ?? null) === (defaultParentId ?? null));
+    return siblings.length;
+  }, [existing, defaultParentId, initial]);
+
   const [f, setF] = useState<any>(() => ({
     label: initial?.label ?? '',
     link: initial?.link ?? '',
     categorySlug: initial?.categorySlug ?? '',
     parentId: initial?.parentId ?? defaultParentId ?? null,
-    sortOrder: initial?.sortOrder ?? 0,
+    sortOrder: initial?.sortOrder ?? nextSortOrder,
     isActive: initial?.isActive !== false,
   }));
+
+  useEffect(() => {
+    setF({
+      label: initial?.label ?? '',
+      link: initial?.link ?? '',
+      categorySlug: initial?.categorySlug ?? '',
+      parentId: initial?.parentId ?? defaultParentId ?? null,
+      sortOrder: initial?.sortOrder ?? nextSortOrder,
+      isActive: initial?.isActive !== false,
+    });
+    setSubmitError(null);
+  }, [initial, defaultParentId, nextSortOrder]);
 
   const categoryOptions = useMemo(() => {
     const out: { id: string; label: string; slug: string }[] = [];
@@ -365,17 +384,38 @@ function MenuForm({
     return out;
   }, [categoriesData]);
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+    const payload = {
+      ...f,
+      id: initial?.id,
+      label: f.label.trim(),
+      link: f.link?.trim() ? f.link.trim() : null,
+      categorySlug: f.categorySlug?.trim() ? f.categorySlug.trim() : null,
+      parentId: f.parentId || null,
+      sortOrder: Number.isFinite(Number(f.sortOrder)) ? Number(f.sortOrder) : 0,
+      isActive: !!f.isActive,
+    };
+    if (!payload.label) {
+      setSubmitError('Label is required.');
+      return;
+    }
+    save.mutate(payload, {
+      onSuccess: () => onClose(),
+      onError: (err: any) => {
+        const msg =
+          err?.response?.data?.error?.message ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Failed to save menu item.';
+        setSubmitError(msg);
+      },
+    });
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        save.mutate(
-          { ...f, id: initial?.id },
-          { onSuccess: () => onClose() }
-        );
-      }}
-      className="space-y-4"
-    >
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="label">Label / Display Title</label>
@@ -393,7 +433,7 @@ function MenuForm({
             type="number"
             className="input"
             value={f.sortOrder}
-            onChange={(e) => setF({ ...f, sortOrder: Number(e.target.value) })}
+            onChange={(e) => setF({ ...f, sortOrder: e.target.value })}
           />
         </div>
       </div>
@@ -462,6 +502,12 @@ function MenuForm({
           <Save size={14} /> {save.isPending ? 'Saving…' : 'Save'}
         </button>
       </div>
+
+      {submitError && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
+          {submitError}
+        </p>
+      )}
     </form>
   );
 }

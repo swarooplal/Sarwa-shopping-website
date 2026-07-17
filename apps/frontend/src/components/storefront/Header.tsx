@@ -74,7 +74,7 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-10" onMouseLeave={onLeave}>
-            {(menus ?? []).slice(0, 6).map((menuItem: MenuNode) => (
+            {(menus ?? []).map((menuItem: MenuNode) => (
               <div
                 key={menuItem.id}
                 className="relative"
