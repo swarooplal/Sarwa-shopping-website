@@ -440,22 +440,43 @@ function MenuForm({
 
       <div>
         <label className="label">Parent Item</label>
-        <select
-          className="input"
-          value={f.parentId ?? ''}
-          onChange={(e) => setF({ ...f, parentId: e.target.value || null })}
-        >
-          <option value="">— Top-level (root) —</option>
-          {flatParents.map((p) => (
-            <option key={p.id} value={p.id}>
-              {'— '.repeat(p.depth)}
-              {p.label}
-            </option>
-          ))}
-        </select>
-        <p className="text-[11px] text-charcoal-300 mt-1">
-          Choose a parent to nest under it (e.g. "By Fabric"). Leave empty for top-level.
-        </p>
+        {initial?.parentId || defaultParentId ? (
+          <div className="input flex items-center justify-between bg-ivory-50">
+            <span className="text-sm">
+              {(() => {
+                const pid = initial?.parentId ?? defaultParentId;
+                const parent = flatParents.find((p) => p.id === pid);
+                if (!parent) return 'Nested item';
+                return `${'— '.repeat(parent.depth)}${parent.label}`;
+              })()}
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-charcoal-300">Locked</span>
+          </div>
+        ) : initial ? (
+          <select
+            className="input"
+            value={f.parentId ?? ''}
+            onChange={(e) => setF({ ...f, parentId: e.target.value || null })}
+          >
+            <option value="">— Top-level (root) —</option>
+            {flatParents.map((p) => (
+              <option key={p.id} value={p.id}>
+                {'— '.repeat(p.depth)}
+                {p.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="input flex items-center justify-between bg-ivory-50">
+            <span className="text-sm">Top-level (root) — appears in the main nav</span>
+            <span className="text-[10px] uppercase tracking-widest text-champagne-600">New root</span>
+          </div>
+        )}
+        {!initial?.parentId && !defaultParentId && !initial && (
+          <p className="text-[11px] text-charcoal-300 mt-1">
+            To create a sub-item, click the + icon on the parent row in the list.
+          </p>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
