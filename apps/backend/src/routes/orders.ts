@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { generateOrderNumber } from '@sarwa/shared';
 import { prisma } from '@sarwa/prisma';
 import { badRequest, buildMeta, created, notFound, ok, paginationFromQuery } from '../utils/response';
-import { authenticate, AuthedRequest, requireRoles } from '../middleware/auth';
+import { authenticate, AuthedRequest, optionalAuth, requireRoles } from '../middleware/auth';
 import { serializeOrder } from '../utils/serialize';
 
 const router = Router();
 
-router.post('/checkout', async (req, res, next) => {
+router.post('/checkout', optionalAuth, async (req: AuthedRequest, res, next) => {
   try {
     const schema = z.object({
       email: z.string().email(),
@@ -27,16 +27,23 @@ router.post('/checkout', async (req, res, next) => {
       notes: z.string().optional(),
     });
     const body = schema.parse(req.body);
-    const cart = await prisma.cart.findUnique({ where: { id: body.cartId }, include: { items: { include: { productId: true } as any } } });
+    const cart = await prisma.cart.findUnique({ where: { id: body.cartId }, include: { items: true } });
     if (!cart || cart.items.length === 0) return badRequest(res, 'Cart is empty');
 
+    const productIds = cart.items.map((i) => i.productId).filter(Boolean) as string[];
+    const products = productIds.length
+      ? await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, sku: true } })
+      : [];
+    const productById = new Map(products.map((p) => [p.id, p]));
+
     const orderNumber = generateOrderNumber();
+    const userId = req.user?.sub ?? null;
 
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        guestEmail: body.email,
-        userId: (req as any).user?.sub,
+        guestEmail: userId ? null : body.email,
+        userId,
         subtotal: cart.subtotal,
         discount: cart.discount,
         shipping: cart.shipping,
@@ -45,15 +52,19 @@ router.post('/checkout', async (req, res, next) => {
         paymentMethod: body.paymentMethod,
         notes: body.notes,
         items: {
-          create: cart.items.map((i) => ({
-            productId: i.productId,
-            variantId: i.variantId,
-            quantity: i.quantity,
-            size: i.size,
-            unitPrice: i.unitPrice,
-            total: Number(i.unitPrice) * i.quantity,
-            name: 'Item',
-          })),
+          create: cart.items.map((i) => {
+            const product = i.productId ? productById.get(i.productId) : null;
+            return {
+              productId: i.productId,
+              variantId: i.variantId,
+              quantity: i.quantity,
+              size: i.size,
+              unitPrice: i.unitPrice,
+              total: Number(i.unitPrice) * i.quantity,
+              name: product?.name ?? 'Item',
+              sku: product?.sku ?? null,
+            };
+          }),
         },
         timeline: {
           create: [{ status: 'PENDING', note: 'Order placed' }],
@@ -66,7 +77,7 @@ router.post('/checkout', async (req, res, next) => {
       await prisma.couponRedemption.create({
         data: {
           couponId: (await prisma.coupon.findUnique({ where: { code: cart.couponCode } }))!.id,
-          userId: (req as any).user?.sub ?? 'guest',
+          userId: userId ?? 'guest',
           orderId: order.id,
         },
       });
