@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Heart, ShoppingBag, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import { useWishlist } from '@/store/wishlist';
@@ -14,6 +15,7 @@ export function ProductInfo({ product }: { product: any }) {
 
   const [size, setSize] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const router = useRouter();
   const add = useCart((s) => s.add);
   const openCart = useCart((s) => s.open);
   const wishHas = useWishlist((s) => s.has)(product.id);
@@ -31,6 +33,20 @@ export function ProductInfo({ product }: { product: any }) {
       size: size ?? undefined,
     });
     openCart();
+  };
+
+  const onBuyNow = () => {
+    add({
+      productId: product.id,
+      variantId: size ?? undefined,
+      name: product.name,
+      slug: product.slug,
+      image: product.images?.[0]?.url ?? '',
+      unitPrice: finalPrice,
+      quantity: qty,
+      size: size ?? undefined,
+    });
+    router.push('/checkout');
   };
 
   const sizes = ['Free Size', 'S', 'M', 'L', 'XL'];
@@ -86,7 +102,7 @@ export function ProductInfo({ product }: { product: any }) {
         </button>
       </div>
 
-      <button className="btn-gold mt-3 w-full">Buy it now</button>
+      <button onClick={onBuyNow} className="btn-gold mt-3 w-full">Buy it now</button>
 
       <ul className="mt-8 space-y-3 text-sm">
         <li className="flex items-start gap-3"><Truck size={18} className="text-champagne mt-0.5" /> Free shipping above ₹1500 · Estimated delivery 5-7 days</li>
