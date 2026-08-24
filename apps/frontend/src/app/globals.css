@@ -4,68 +4,124 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ── Brand tokens (logo-inspired) ─────────────────────────────────
+ * --ivory      — warm ivory / cream, the page background
+ * --cream      — off-white for cards & content surfaces
+ * --peach      — soft peach / blush, subtle section background
+ * --primary    — deep burgundy / maroon, primary brand
+ * --accent     — terracotta / coral, secondary accent
+ * --ink        — warm brown, body text
+ * --ink-soft   — muted warm brown, secondary text
+ * ─────────────────────────────────────────────────────────────── */
 :root {
-  --primary: #1F3D2E;
-  --ivory: #FBF7F0;
-  --champagne: #C9A96E;
-  --charcoal: #2C2C2C;
+  --ivory: #FAF4EC;
+  --cream: #FFFCF7;
+  --peach: #F4D7C8;
+  --primary: #6E2233;
+  --primary-deep: #5A1B2A;
+  --accent: #C5654A;
+  --ink: #3E2A20;
+  --ink-soft: #6F5446;
 }
 
-html, body {
-  background: #ffffff;
-  color: var(--charcoal);
+html,
+body {
+  background: var(--ivory);
+  color: var(--ink);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.005em;
 }
 
-h1, h2, h3, h4, h5, h6, .font-serif {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-serif {
   font-family: 'Cormorant Garamond', Georgia, serif;
   letter-spacing: -0.005em;
+  color: var(--ink);
+  font-weight: 500;
 }
 
-::selection { background: var(--champagne); color: white; }
+p {
+  color: var(--ink-soft);
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--cream);
+}
 
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium tracking-wide transition-all duration-300;
   }
+
+  /* Primary = burgundy. Reserved for the most important call to action. */
   .btn-primary {
-    @apply btn bg-primary text-ivory hover:bg-primary-600 shadow-luxury;
+    @apply btn bg-primary text-cream hover:bg-[var(--primary-deep)] shadow-soft;
   }
+
   .btn-outline {
-    @apply btn border border-primary text-primary hover:bg-primary hover:text-ivory;
+    @apply btn border border-primary text-primary hover:bg-primary hover:text-cream;
   }
+
+  /* "Gold" token now maps to the warm terracotta accent. */
   .btn-gold {
-    @apply btn bg-champagne text-white hover:bg-champagne-500 shadow-gold;
+    @apply btn bg-[var(--accent)] text-cream hover:bg-[#A24E37];
   }
+
   .btn-ghost {
-    @apply btn text-primary hover:bg-ivory-100;
+    @apply btn text-primary hover:bg-peach/40;
   }
+
   .input {
-    @apply w-full rounded-md border border-charcoal-100 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-champagne/40 focus:border-champagne transition;
+    @apply w-full rounded-md border border-[#E6D9CE] bg-cream px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[#9E826F] focus:outline-none focus:ring-2 focus:ring-[#E9A98C] focus:border-[var(--accent)] transition;
   }
+
   .label {
-    @apply mb-1 block text-xs font-medium tracking-widest text-charcoal-400;
+    @apply mb-1 block text-[11px] font-medium tracking-[0.2em] uppercase text-[var(--ink-soft)];
   }
-  .container-x { @apply mx-auto max-w-[1280px] px-6 md:px-10; }
+
+  .container-x {
+    @apply mx-auto max-w-[1280px] px-6 md:px-10;
+  }
+
   .eyebrow {
-    @apply text-[11px] uppercase tracking-[0.25em] text-champagne-500;
+    @apply text-[11px] uppercase tracking-[0.25em] text-[var(--accent)];
   }
+
+  /* Cards sit on the warm cream surface, not bright white. */
   .luxury-card {
-    @apply rounded-xl2 bg-white shadow-soft hover:shadow-luxury transition-shadow duration-500;
+    @apply rounded-xl2 bg-cream border border-[#EFE4D3] shadow-soft hover:shadow-luxury transition-shadow duration-500;
   }
+
   .divider {
-    @apply h-px w-12 bg-champagne;
+    @apply h-px w-12 bg-[var(--accent)];
   }
+
   .link-underline {
     @apply relative inline-flex after:absolute after:left-0 after:-bottom-1 after:h-px after:w-0 after:bg-primary after:transition-all hover:after:w-full;
   }
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--ivory); }
-::-webkit-scrollbar-thumb { background: rgba(31, 61, 46, 0.25); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(31, 61, 46, 0.45); }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ivory);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(110, 34, 51, 0.25);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 34, 51, 0.45);
+}
 
 .luxury-mask {
   -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
