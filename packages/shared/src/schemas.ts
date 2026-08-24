@@ -28,6 +28,17 @@ export const QuickAuthSchema = z.object({
 
 export type QuickAuthInput = z.infer<typeof QuickAuthSchema>;
 
+export const OtpRequestSchema = z.object({
+  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/),
+  channel: z.enum(['sms', 'whatsapp']).default('sms'),
+});
+
+export const OtpVerifySchema = z.object({
+  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/),
+  code: z.string().regex(/^[0-9]{4,8}$/),
+  channel: z.enum(['sms', 'whatsapp']).default('sms'),
+});
+
 export const AddressSchema = z.object({
   label: z.string().optional(),
   fullName: z.string().min(1),
