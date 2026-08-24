@@ -1,32 +1,25 @@
 import { z } from 'zod';
 
 export const RegisterSchema = z.object({
-  email: z.string().email().optional(),
-  password: z.string().min(8).optional(),
-  firstName: z.string().min(1).optional(),
+  firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1).optional(),
-  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/).optional(),
-}).refine((d) => !!d.email || !!d.phone, {
-  message: 'Email or phone is required',
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export const LoginSchema = z.object({
-  email: z.string().email().optional(),
-  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/).optional(),
-  password: z.string().min(1).optional(),
-}).refine((d) => !!d.email || !!d.phone, {
-  message: 'Email or phone is required',
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(1, 'Password is required'),
 });
 
-// Auto-create-or-login: accepts email or phone; if the user does not
-// exist they are created on the fly and signed in.
-export const QuickAuthSchema = z.object({
-  identifier: z.string().min(3),
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('Enter a valid email'),
 });
 
-export type QuickAuthInput = z.infer<typeof QuickAuthSchema>;
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
 
 export const OtpRequestSchema = z.object({
   phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/),

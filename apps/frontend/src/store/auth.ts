@@ -16,13 +16,12 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
-  quickAuth: (identifier: string, firstName?: string, lastName?: string) => Promise<void>;
-  requestOtp: (phone: string, channel?: 'sms' | 'whatsapp') => Promise<{ devCode?: string }>;
-  verifyOtp: (phone: string, code: string, channel?: 'sms' | 'whatsapp') => Promise<void>;
-  hydrateFromQuery: () => boolean;
+  register: (data: { firstName: string; lastName?: string; email: string; password: string }) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ devResetToken?: string }>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
   fetchMe: () => Promise<void>;
+  checkEmail: (email: string) => Promise<boolean>;
 }
 
 export const useAuth = create<AuthState>()(
@@ -44,14 +43,8 @@ export const useAuth = create<AuthState>()(
       },
       register: async (body) => {
         set({ isLoading: true });
-        const data: any = await apiPost('/auth/register', body);
-        set({ isLoading: false });
-        return data;
-      },
-      quickAuth: async (identifier, firstName, lastName) => {
-        set({ isLoading: true });
         try {
-          const data: any = await apiPost('/auth/quick', { identifier, firstName, lastName });
+          const data: any = await apiPost('/auth/register', body);
           setAccessToken(data.accessToken);
           if (typeof window !== 'undefined') localStorage.setItem('sarwa_refresh', data.refreshToken);
           set({ user: data.user, isLoading: false });
@@ -60,46 +53,12 @@ export const useAuth = create<AuthState>()(
           throw e;
         }
       },
-      requestOtp: async (phone, channel = 'sms') => {
-        set({ isLoading: true });
-        try {
-          const data: any = await apiPost('/auth/otp/request', { phone, channel });
-          set({ isLoading: false });
-          return { devCode: data.devCode };
-        } catch (e) {
-          set({ isLoading: false });
-          throw e;
-        }
+      forgotPassword: async (email) => {
+        const data: any = await apiPost('/auth/forgot-password', { email });
+        return { devResetToken: data.devResetToken };
       },
-      verifyOtp: async (phone, code, channel = 'sms') => {
-        set({ isLoading: true });
-        try {
-          const data: any = await apiPost('/auth/otp/verify', { phone, code, channel });
-          setAccessToken(data.accessToken);
-          if (typeof window !== 'undefined') localStorage.setItem('sarwa_refresh', data.refreshToken);
-          set({ user: data.user, isLoading: false });
-        } catch (e) {
-          set({ isLoading: false });
-          throw e;
-        }
-      },
-      hydrateFromQuery: () => {
-        if (typeof window === 'undefined') return false;
-        const hash = window.location.hash.startsWith('#')
-          ? window.location.hash.slice(1)
-          : window.location.hash;
-        if (!hash || !hash.includes('access_token=')) return false;
-        const params = new URLSearchParams(hash);
-        const access = params.get('access_token');
-        const refresh = params.get('refresh_token');
-        if (!access) return false;
-        setAccessToken(access);
-        if (refresh) localStorage.setItem('sarwa_refresh', refresh);
-        get().fetchMe().catch(() => undefined);
-        // Strip the fragment so the URL is clean
-        const clean = window.location.pathname + window.location.search;
-        window.history.replaceState({}, '', clean);
-        return true;
+      resetPassword: async (token, password) => {
+        await apiPost('/auth/reset-password', { token, password });
       },
       logout: () => {
         setAccessToken(null);
@@ -113,6 +72,10 @@ export const useAuth = create<AuthState>()(
         } catch {
           set({ user: null });
         }
+      },
+      checkEmail: async (email) => {
+        const data: any = await apiGet(`/auth/check-email?email=${encodeURIComponent(email)}`);
+        return !!data?.exists;
       },
     }),
     {

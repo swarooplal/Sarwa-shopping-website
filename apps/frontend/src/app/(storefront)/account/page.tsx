@@ -1,43 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Phone, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Mail, Lock, User } from 'lucide-react';
 
-type Mode = 'identifier' | 'phone' | 'whatsapp' | 'otp';
+type Mode = 'login' | 'register' | 'forgot' | 'reset' | 'sent' | 'done';
 
-const IdentifierSchema = z.object({
-  identifier: z.string().min(3, 'Enter your email or phone number'),
+const LoginSchema = z.object({
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(1, 'Password is required'),
 });
-const PhoneSchema = z.object({
-  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/, 'Enter a valid phone number'),
+
+const RegisterSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
-const OtpSchema = z.object({
-  code: z.string().regex(/^[0-9]{4,8}$/, 'Enter the 6-digit code'),
+
+const ForgotSchema = z.object({
+  email: z.string().email('Enter a valid email'),
+});
+
+const ResetSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export default function AccountPage() {
-  const { user, quickAuth, requestOtp, verifyOtp, hydrateFromQuery, logout } = useAuth();
+  const { user, login, register, forgotPassword, resetPassword, logout } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>('identifier');
-  const [phone, setPhone] = useState('');
-  const [channel, setChannel] = useState<'sms' | 'whatsapp'>('sms');
-  const [devCode, setDevCode] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('login');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    const consumed = hydrateFromQuery();
-    if (consumed) router.replace('/account');
-  }, [hydrateFromQuery, router]);
-
-  const identifierForm = useForm({ resolver: zodResolver(IdentifierSchema) });
-  const phoneForm = useForm({ resolver: zodResolver(PhoneSchema) });
-  const otpForm = useForm({ resolver: zodResolver(OtpSchema) });
+  const loginForm = useForm({ resolver: zodResolver(LoginSchema) });
+  const registerForm = useForm({ resolver: zodResolver(RegisterSchema) });
+  const forgotForm = useForm({ resolver: zodResolver(ForgotSchema) });
+  const resetForm = useForm({ resolver: zodResolver(ResetSchema) });
 
   if (user) {
     return (
@@ -54,44 +58,64 @@ export default function AccountPage() {
     );
   }
 
-  const onIdentifier = async (d: any) => {
+  const onLogin = async (d: any) => {
     setSubmitting(true); setError(null);
-    try { await quickAuth(d.identifier); router.push('/account'); }
-    catch (e: any) { setError(e?.response?.data?.error?.message ?? 'Could not sign in.'); }
-    finally { setSubmitting(false); }
+    try { await login(d.email, d.password); router.push('/account'); }
+    catch (e: any) {
+      setError(e?.response?.data?.error?.message ?? 'Invalid email or password');
+    } finally { setSubmitting(false); }
   };
 
-  const onRequestOtp = async (d: any) => {
+  const onRegister = async (d: any) => {
     setSubmitting(true); setError(null);
-    try {
-      const raw = d.phone.replace(/[^0-9]/g, '');
-      setPhone(raw);
-      const { devCode } = await requestOtp(raw, channel);
-      setDevCode(devCode ?? null);
-      setMode('otp');
-    } catch (e: any) {
-      setError(e?.response?.data?.error?.message ?? 'Could not send code.');
-    } finally {
-      setSubmitting(false);
-    }
+    try { await register(d); router.push('/account'); }
+    catch (e: any) {
+      setError(e?.response?.data?.error?.message ?? 'Could not create account');
+    } finally { setSubmitting(false); }
   };
 
-  const onVerifyOtp = async (d: any) => {
+  const onForgot = async (d: any) => {
     setSubmitting(true); setError(null);
     try {
-      await verifyOtp(phone, d.code, channel);
-      router.push('/account');
+      const { devResetToken } = await forgotPassword(d.email);
+      setResetEmail(d.email);
+      if (devResetToken) {
+        setResetToken(devResetToken);
+        setMode('reset');
+      } else {
+        setMode('sent');
+      }
     } catch (e: any) {
-      setError(e?.response?.data?.error?.message ?? 'Invalid or expired code.');
-    } finally {
-      setSubmitting(false);
-    }
+      setError(e?.response?.data?.error?.message ?? 'Could not send reset link');
+    } finally { setSubmitting(false); }
   };
 
-  const startGoogle = () => {
-    const returnTo = '/account';
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api/v1'}/auth/google?returnTo=${encodeURIComponent(returnTo)}`;
+  const onReset = async (d: any) => {
+    if (!resetToken) return;
+    setSubmitting(true); setError(null);
+    try {
+      await resetPassword(resetToken, d.password);
+      setMode('done');
+    } catch (e: any) {
+      setError(e?.response?.data?.error?.message ?? 'Could not reset password');
+    } finally { setSubmitting(false); }
   };
+
+  const heading =
+    mode === 'login' ? 'Welcome back'
+    : mode === 'register' ? 'Join SARWA'
+    : mode === 'forgot' ? 'Forgot your password?'
+    : mode === 'sent' ? 'Check your inbox'
+    : mode === 'reset' ? 'Choose a new password'
+    : 'Password updated';
+
+  const sub =
+    mode === 'login' ? 'Sign in to view orders and saved pieces.'
+    : mode === 'register' ? 'Create an account to start shopping.'
+    : mode === 'forgot' ? 'Enter your email and we\'ll send a reset link.'
+    : mode === 'sent' ? `If an account exists for ${resetEmail}, a reset link is on its way.`
+    : mode === 'reset' ? 'Your reset link is verified. Pick a new password.'
+    : 'You can now sign in with your new password.';
 
   return (
     <div className="container-x py-16 grid gap-12 md:grid-cols-2 max-w-5xl">
@@ -105,132 +129,143 @@ export default function AccountPage() {
       />
       <div>
         <span className="eyebrow">SARWA · Account</span>
-        <h1 className="font-serif text-4xl mt-2">
-          {mode === 'otp' ? 'Enter the code' : 'Continue with SARWA'}
-        </h1>
-        <p className="text-sm text-charcoal-300 mt-2">
-          {mode === 'otp'
-            ? `We sent a 6-digit code to your phone via ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}.`
-            : 'Sign in or create your account in seconds.'}
-        </p>
+        <h1 className="font-serif text-4xl mt-2">{heading}</h1>
+        <p className="text-sm text-charcoal-300 mt-2">{sub}</p>
 
-        {mode === 'identifier' && (
-          <>
-            <button onClick={startGoogle} className="btn-outline w-full mt-6 flex items-center justify-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.49 12c0-.73.13-1.44.35-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
-              Continue with Google
-            </button>
-
-            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-charcoal-300">
-              <span className="h-px flex-1 bg-charcoal-100" /> or <span className="h-px flex-1 bg-charcoal-100" />
-            </div>
-
-            <form onSubmit={identifierForm.handleSubmit(onIdentifier)} className="space-y-4">
-              <div>
-                <label className="label">Email or phone</label>
-                <div className="relative">
-                  <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
-                  <input className="input pl-10" placeholder="you@example.com or 9876543210" autoComplete="username" {...identifierForm.register('identifier')} />
-                </div>
-                {identifierForm.formState.errors.identifier && (
-                  <p className="text-xs text-red-500 mt-1">{identifierForm.formState.errors.identifier.message as string}</p>
-                )}
+        {mode === 'login' && (
+          <form onSubmit={loginForm.handleSubmit(onLogin)} className="mt-8 space-y-4">
+            <div>
+              <label className="label">Email</label>
+              <div className="relative">
+                <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="email" autoComplete="email" {...loginForm.register('email')} />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Continuing…' : 'Continue'}</button>
-            </form>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => { setChannel('sms'); setMode('phone'); setError(null); }}
-                className="border border-charcoal-100 rounded-md p-4 text-left hover:border-champagne transition"
-              >
-                <Phone size={16} className="text-champagne-500 mb-2" />
-                <p className="text-sm font-medium">SMS OTP</p>
-                <p className="text-xs text-charcoal-300">Sign in with a code by SMS</p>
-              </button>
-              <button
-                onClick={() => { setChannel('whatsapp'); setMode('phone'); setError(null); }}
-                className="border border-charcoal-100 rounded-md p-4 text-left hover:border-champagne transition"
-              >
-                <MessageCircle size={16} className="text-champagne-500 mb-2" />
-                <p className="text-sm font-medium">WhatsApp OTP</p>
-                <p className="text-xs text-charcoal-300">Sign in with a code by WhatsApp</p>
-              </button>
-            </div>
-          </>
-        )}
-
-        {mode === 'phone' && (
-          <>
-            <button onClick={() => { setMode('identifier'); setError(null); }} className="text-xs text-charcoal-300 hover:text-charcoal mt-4 inline-flex items-center gap-1">
-              <ChevronLeft size={12} /> Back
-            </button>
-            <form onSubmit={phoneForm.handleSubmit(onRequestOtp)} className="space-y-4 mt-4">
-              <div>
-                <label className="label">Phone number</label>
-                <div className="relative">
-                  {channel === 'sms'
-                    ? <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
-                    : <MessageCircle size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />}
-                  <input className="input pl-10" placeholder="9876543210" autoComplete="tel" {...phoneForm.register('phone')} />
-                </div>
-                {phoneForm.formState.errors.phone && (
-                  <p className="text-xs text-red-500 mt-1">{phoneForm.formState.errors.phone.message as string}</p>
-                )}
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <button disabled={submitting} className="btn-primary w-full">
-                {submitting ? 'Sending…' : `Send code via ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}`}
-              </button>
-            </form>
-          </>
-        )}
-
-        {mode === 'otp' && (
-          <>
-            <button onClick={() => { setMode('phone'); setError(null); }} className="text-xs text-charcoal-300 hover:text-charcoal mt-4 inline-flex items-center gap-1">
-              <ChevronLeft size={12} /> Change number
-            </button>
-            <form onSubmit={otpForm.handleSubmit(onVerifyOtp)} className="space-y-4 mt-4">
-              <div>
-                <label className="label">Verification code</label>
-                <input
-                  className="input tracking-[0.5em] text-center text-2xl"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={8}
-                  placeholder="••••••"
-                  {...otpForm.register('code')}
-                />
-                {otpForm.formState.errors.code && (
-                  <p className="text-xs text-red-500 mt-1">{otpForm.formState.errors.code.message as string}</p>
-                )}
-              </div>
-              {devCode && (
-                <p className="text-xs text-champagne-500">Dev mode: code is {devCode}</p>
+              {loginForm.formState.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{loginForm.formState.errors.email.message as string}</p>
               )}
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <button disabled={submitting} className="btn-primary w-full">
-                {submitting ? 'Verifying…' : 'Verify and continue'}
+            </div>
+            <div>
+              <label className="label">Password</label>
+              <div className="relative">
+                <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="password" autoComplete="current-password" {...loginForm.register('password')} />
+              </div>
+              {loginForm.formState.errors.password && (
+                <p className="text-xs text-red-500 mt-1">{loginForm.formState.errors.password.message as string}</p>
+              )}
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Signing in…' : 'Sign in'}</button>
+            <div className="flex items-center justify-between text-xs">
+              <button type="button" onClick={() => { setMode('forgot'); setError(null); }} className="text-champagne-500 link-underline">
+                Forgot password?
               </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setSubmitting(true); setError(null);
-                  try {
-                    const { devCode } = await requestOtp(phone, channel);
-                    setDevCode(devCode ?? null);
-                  } catch (e: any) {
-                    setError(e?.response?.data?.error?.message ?? 'Could not resend.');
-                  } finally { setSubmitting(false); }
-                }}
-                className="text-xs text-charcoal-300 hover:text-charcoal w-full text-center"
-              >
-                Resend code
+              <button type="button" onClick={() => { setMode('register'); setError(null); }} className="text-charcoal-300 hover:text-charcoal">
+                Create an account →
               </button>
-            </form>
-          </>
+            </div>
+          </form>
+        )}
+
+        {mode === 'register' && (
+          <form onSubmit={registerForm.handleSubmit(onRegister)} className="mt-8 space-y-4">
+            <div>
+              <label className="label">First name</label>
+              <div className="relative">
+                <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" autoComplete="given-name" {...registerForm.register('firstName')} />
+              </div>
+              {registerForm.formState.errors.firstName && (
+                <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.firstName.message as string}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <div className="relative">
+                <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="email" autoComplete="email" {...registerForm.register('email')} />
+              </div>
+              {registerForm.formState.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.email.message as string}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Password</label>
+              <div className="relative">
+                <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="password" autoComplete="new-password" placeholder="At least 8 characters" {...registerForm.register('password')} />
+              </div>
+              {registerForm.formState.errors.password && (
+                <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.password.message as string}</p>
+              )}
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Creating…' : 'Create account'}</button>
+            <p className="text-xs text-center text-charcoal-300">
+              Already have an account?{' '}
+              <button type="button" onClick={() => { setMode('login'); setError(null); }} className="text-champagne-500 link-underline">
+                Sign in
+              </button>
+            </p>
+          </form>
+        )}
+
+        {mode === 'forgot' && (
+          <form onSubmit={forgotForm.handleSubmit(onForgot)} className="mt-8 space-y-4">
+            <div>
+              <label className="label">Email</label>
+              <div className="relative">
+                <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="email" autoComplete="email" {...forgotForm.register('email')} />
+              </div>
+              {forgotForm.formState.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{forgotForm.formState.errors.email.message as string}</p>
+              )}
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Sending…' : 'Send reset link'}</button>
+            <p className="text-xs text-center text-charcoal-300">
+              Remembered it?{' '}
+              <button type="button" onClick={() => { setMode('login'); setError(null); }} className="text-champagne-500 link-underline">
+                Back to sign in
+              </button>
+            </p>
+          </form>
+        )}
+
+        {mode === 'sent' && (
+          <div className="mt-8 space-y-4">
+            <div className="rounded-md border border-champagne/30 bg-champagne/5 px-4 py-3 text-sm">
+              A password reset link has been sent to <strong>{resetEmail}</strong>. Check your inbox.
+            </div>
+            <button onClick={() => { setMode('login'); setError(null); }} className="btn-primary w-full">Back to sign in</button>
+          </div>
+        )}
+
+        {mode === 'reset' && (
+          <form onSubmit={resetForm.handleSubmit(onReset)} className="mt-8 space-y-4">
+            <div>
+              <label className="label">New password</label>
+              <div className="relative">
+                <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+                <input className="input pl-10" type="password" autoComplete="new-password" placeholder="At least 8 characters" {...resetForm.register('password')} />
+              </div>
+              {resetForm.formState.errors.password && (
+                <p className="text-xs text-red-500 mt-1">{resetForm.formState.errors.password.message as string}</p>
+              )}
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Updating…' : 'Update password'}</button>
+          </form>
+        )}
+
+        {mode === 'done' && (
+          <div className="mt-8 space-y-4">
+            <div className="rounded-md border border-champagne/30 bg-champagne/5 px-4 py-3 text-sm">
+              Your password has been updated.
+            </div>
+            <button onClick={() => { setMode('login'); setError(null); }} className="btn-primary w-full">Sign in</button>
+          </div>
         )}
       </div>
     </div>
