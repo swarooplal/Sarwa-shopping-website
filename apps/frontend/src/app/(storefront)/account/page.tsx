@@ -164,6 +164,14 @@ export default function AccountPage() {
                 Create an account →
               </button>
             </div>
+
+            <div className="mt-6 rounded-md border border-charcoal-100 p-4 text-center">
+              <p className="text-xs uppercase tracking-widest text-charcoal-300">New to SARWA?</p>
+              <button type="button" onClick={() => { setMode('register'); setError(null); }} className="mt-2 text-sm font-medium text-primary link-underline">
+                Create your account
+              </button>
+              <p className="text-xs text-charcoal-300 mt-1">Save addresses, track orders, and check out in one click.</p>
+            </div>
           </form>
         )}
 

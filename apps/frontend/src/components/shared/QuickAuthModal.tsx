@@ -222,6 +222,13 @@ export function QuickAuthModal() {
                     <ChevronLeft size={12} /> Different email
                   </button>
                 </div>
+
+                <div className="mt-2 rounded-md border border-charcoal-100 p-3 text-center">
+                  <p className="text-[11px] uppercase tracking-widest text-charcoal-300">First time at SARWA?</p>
+                  <button type="button" onClick={() => { setMode('register'); setError(null); }} className="mt-1 text-sm font-medium text-primary link-underline">
+                    Create an account
+                  </button>
+                </div>
               </form>
             )}
 
