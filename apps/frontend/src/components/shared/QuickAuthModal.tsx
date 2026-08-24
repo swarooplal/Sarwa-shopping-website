@@ -165,53 +165,26 @@ export function QuickAuthModal() {
                   </div>
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <div className="grid grid-cols-2 gap-3">
+                <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Checking…' : 'Continue'}</button>
+                <div className="flex items-center justify-center gap-2 text-sm pt-2">
                   <button
                     type="button"
-                    disabled={submitting || !email.trim()}
-                    onClick={async () => {
-                      if (!email.trim()) return;
-                      setSubmitting(true); setError(null);
-                      try {
-                        const exists = await checkEmail(email.trim());
-                        if (exists) {
-                          setMode('login');
-                        } else {
-                          setError('No account found for this email. Use "Sign up" to create one.');
-                        }
-                      } catch (err: any) {
-                        setError(err?.response?.data?.error?.message ?? 'Could not verify email.');
-                      } finally { setSubmitting(false); }
-                    }}
-                    className="btn-outline"
+                    disabled={!email.trim()}
+                    onClick={() => { setMode('login'); setError(null); }}
+                    className="text-charcoal hover:text-primary underline underline-offset-4 decoration-champagne disabled:opacity-40 disabled:no-underline"
                   >
                     Sign in
                   </button>
+                  <span className="text-charcoal-300">·</span>
                   <button
                     type="button"
-                    disabled={submitting || !email.trim()}
-                    onClick={async () => {
-                      if (!email.trim()) return;
-                      setSubmitting(true); setError(null);
-                      try {
-                        const exists = await checkEmail(email.trim());
-                        if (exists) {
-                          setError('An account already exists for this email. Use "Sign in" instead.');
-                        } else {
-                          setMode('register');
-                        }
-                      } catch (err: any) {
-                        setError(err?.response?.data?.error?.message ?? 'Could not verify email.');
-                      } finally { setSubmitting(false); }
-                    }}
-                    className="btn-primary"
+                    disabled={!email.trim()}
+                    onClick={() => { setMode('register'); setError(null); }}
+                    className="text-charcoal hover:text-primary underline underline-offset-4 decoration-champagne disabled:opacity-40 disabled:no-underline font-medium"
                   >
-                    Sign up
+                    Create new user
                   </button>
                 </div>
-                <p className="text-xs text-center text-charcoal-300">
-                  Or just press <span className="font-medium">Continue</span> to auto-detect.
-                </p>
               </form>
             )}
 
