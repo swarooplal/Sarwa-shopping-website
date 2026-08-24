@@ -265,7 +265,14 @@ export function useUpdateOrder() {
   return useMutation({
     mutationFn: ({ id, status, note }: { id: string; status: string; note?: string }) =>
       apiPatch(`/orders/admin/${id}/status`, { status, note }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'orders'] }),
+    onSuccess: () => {
+      // Refresh the admin order list, every admin order-detail view,
+      // and the storefront "my orders" list so customers see the new
+      // status too.
+      qc.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'order'] });
+      qc.invalidateQueries({ queryKey: ['my-orders'] });
+    },
   });
 }
 
