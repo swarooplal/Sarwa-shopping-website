@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAdminOrders, useUpdateOrder } from '@/hooks/queries';
 import { AdminTable } from '@/components/admin/AdminTable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -11,8 +12,12 @@ export default function AdminOrdersPage() {
   const update = useUpdateOrder();
   const [status, setStatus] = useState<Record<string, string>>({});
 
-  const rows = (data ?? []).map((o: any) => [
-    <span key="n" className="font-medium">{o.orderNumber}</span>,
+  const orderList: any[] = Array.isArray(data) ? data : (data as any)?.data ?? [];
+
+  const rows = orderList.map((o: any) => [
+    <Link key="n" href={`/admin/orders/${o.orderNumber}`} className="font-medium text-primary link-underline">
+      {o.orderNumber}
+    </Link>,
     <span key="d">{formatDate(o.createdAt)}</span>,
     <span key="c">{o.user?.email ?? o.guestEmail ?? '—'}</span>,
     <span key="t">{formatCurrency(Number(o.total))}</span>,
@@ -26,20 +31,25 @@ export default function AdminOrdersPage() {
         <option key={k} value={k}>{v}</option>
       ))}
     </select>,
-    <button
-      key="u"
-      onClick={() => update.mutate({ id: o.id, status: status[o.id] ?? o.status })}
+    <Link
+      key="v"
+      href={`/admin/orders/${o.orderNumber}`}
       className="btn-outline !py-1 !px-3 text-[10px]"
     >
-      Save
-    </button>,
+      View
+    </Link>,
   ]);
 
   return (
     <div>
-      <p className="text-sm text-charcoal-300 mb-4">{(data ?? []).length} orders</p>
-      {isLoading ? <p className="text-charcoal-300">Loading…</p> :
-        <AdminTable headers={['Order', 'Date', 'Customer', 'Total', 'Status', '']} rows={rows} />}
+      <p className="text-sm text-charcoal-300 mb-4">{orderList.length} orders</p>
+      {isLoading ? (
+        <p className="text-charcoal-300">Loading…</p>
+      ) : orderList.length === 0 ? (
+        <p className="text-charcoal-300 text-sm">No orders yet.</p>
+      ) : (
+        <AdminTable headers={['Order', 'Date', 'Customer', 'Total', 'Status', '']} rows={rows} />
+      )}
     </div>
   );
 }

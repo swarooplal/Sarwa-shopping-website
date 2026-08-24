@@ -67,6 +67,13 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   RETURNED: 'Returned',
 };
 
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+  REFUNDED: 'Refunded',
+};
+
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ADMIN: ['*'],
   MANAGER: [

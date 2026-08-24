@@ -142,7 +142,34 @@ router.get('/:orderNumber', async (req, res, next) => {
   try {
     const order = await prisma.order.findUnique({
       where: { orderNumber: String(req.params.orderNumber) },
-      include: { items: true, timeline: { orderBy: { at: 'asc' } } },
+      include: {
+        items: true,
+        timeline: { orderBy: { at: 'asc' } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true, phone: true },
+        },
+        shippingAddress: true,
+      },
+    });
+    if (!order) return notFound(res);
+    return ok(res, order);
+  } catch (e) {
+    return next(e);
+  }
+});
+
+router.get('/admin/:orderNumber', authenticate, requireRoles('ADMIN' as any, 'MANAGER' as any, 'STAFF' as any), async (req, res, next) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { orderNumber: String(req.params.orderNumber) },
+      include: {
+        items: true,
+        timeline: { orderBy: { at: 'asc' } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true, phone: true },
+        },
+        shippingAddress: true,
+      },
     });
     if (!order) return notFound(res);
     return ok(res, order);

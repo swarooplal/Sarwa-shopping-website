@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPut, apiPatch, apiDel } from '@/lib/api';
+import { api, apiGet, apiPost, apiPut, apiPatch, apiDel } from '@/lib/api';
 
 export function useBanners(position: string = 'HERO') {
   return useQuery({
@@ -140,6 +140,14 @@ export function useAdminOrders(params: Record<string, any> = {}) {
   });
 }
 
+export function useAdminOrder(orderNumber?: string) {
+  return useQuery({
+    queryKey: ['admin', 'order', orderNumber],
+    queryFn: () => apiGet<any>(`/orders/admin/${orderNumber}`),
+    enabled: !!orderNumber,
+  });
+}
+
 export function useAdminReviews() {
   return useQuery({ queryKey: ['admin', 'reviews'], queryFn: () => apiGet<any[]>('/reviews/admin') });
 }
@@ -155,9 +163,14 @@ export function useAdminCoupons() {
 export function useSaveProduct() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) =>
-      data?.id ? apiPut(`/products/${data.id}`, data) : apiPost('/products', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    mutationFn: async (data: any) => {
+      const result = data?.id ? await apiPut(`/products/${data.id}`, data) : await apiPost('/products', data);
+      return result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'products'] });
+    },
   });
 }
 
@@ -236,12 +249,13 @@ export function useUploadFile() {
     mutationFn: async (file: File) => {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api/v1'}/uploads`, {
-        method: 'POST',
-        body: fd,
-        credentials: 'include',
+      const res = await api.post('/uploads', fd, {
+        transformRequest: (d, headers) => {
+          if (headers) delete (headers as any)['Content-Type'];
+          return d;
+        },
       });
-      return res.json();
+      return res.data?.data;
     },
   });
 }
