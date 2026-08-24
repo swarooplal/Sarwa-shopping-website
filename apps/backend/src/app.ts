@@ -28,6 +28,7 @@ import adminRoutes from './routes/admin';
 import searchRoutes from './routes/search';
 import uploadRoutes from './routes/uploads';
 import seoRoutes from './routes/seo';
+import paymentRoutes from './routes/payments';
 
 export function createApp() {
   const app = express();
@@ -77,6 +78,7 @@ export function createApp() {
   app.use(`${api}/search`, searchRoutes);
   app.use(`${api}/uploads`, uploadRoutes);
   app.use(`${api}/seo`, seoRoutes);
+  app.use(`${api}/payments`, paymentRoutes);
 
   app.use(errorHandler);
   return app;

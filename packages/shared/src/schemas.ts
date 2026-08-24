@@ -29,14 +29,14 @@ export const AddressSchema = z.object({
 export const CategorySchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
-  description: z.string().optional(),
-  image: z.string().url().optional(),
-  banner: z.string().url().optional(),
+  description: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+  banner: z.string().nullable().optional(),
   parentId: z.string().optional().nullable(),
   sortOrder: z.number().int().default(0),
   isVisible: z.boolean().default(true),
-  seoTitle: z.string().optional(),
-  seoDescription: z.string().optional(),
+  seoTitle: z.string().nullable().optional(),
+  seoDescription: z.string().nullable().optional(),
 });
 
 export const ProductVariantSchema = z.object({
@@ -50,22 +50,22 @@ export const ProductSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   sku: z.string().min(1),
-  shortDescription: z.string().optional(),
-  description: z.string().optional(),
+  shortDescription: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   price: z.number().positive(),
-  offerPrice: z.number().positive().optional(),
+  offerPrice: z.number().positive().nullable().optional(),
   stock: z.number().int().min(0).default(0),
-  brand: z.string().optional(),
-  fabric: z.string().optional(),
-  occasion: z.string().optional(),
-  color: z.string().optional(),
-  weight: z.number().optional(),
+  brand: z.string().nullable().optional(),
+  fabric: z.string().nullable().optional(),
+  occasion: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  weight: z.number().nullable().optional(),
   tags: z.array(z.string()).default([]),
   categoryIds: z.array(z.string()).default([]),
   collectionIds: z.array(z.string()).default([]),
   variants: z.array(ProductVariantSchema).default([]),
-  seoTitle: z.string().optional(),
-  seoDescription: z.string().optional(),
+  seoTitle: z.string().nullable().optional(),
+  seoDescription: z.string().nullable().optional(),
   metaKeywords: z.array(z.string()).default([]),
   relatedProductIds: z.array(z.string()).default([]),
   crossSellIds: z.array(z.string()).default([]),
@@ -98,6 +98,8 @@ export const MenuSchema = z.object({
   parentId: z.string().optional().nullable(),
   sortOrder: z.number().int().default(0),
   isActive: z.boolean().default(true),
+  // Prefer linking to a Category by id; falls back to categorySlug for legacy entries.
+  categoryId: z.string().optional().nullable(),
   categorySlug: z.string().optional().nullable(),
   productIds: z.array(z.string()).default([]),
 });
@@ -127,6 +129,13 @@ export const CheckoutSchema = z.object({
   billingAddress: AddressSchema.optional(),
   paymentMethod: z.enum(['RAZORPAY', 'STRIPE', 'COD']),
   notes: z.string().optional(),
+});
+
+export const RazorpayVerifySchema = z.object({
+  razorpay_order_id: z.string(),
+  razorpay_payment_id: z.string(),
+  razorpay_signature: z.string(),
+  orderNumber: z.string(),
 });
 
 export const ReviewSchema = z.object({
