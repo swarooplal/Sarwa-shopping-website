@@ -10,7 +10,16 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState('');
   const { data, isLoading } = useAdminCustomers({ search, pageSize: 50 });
 
-  const rows = ((data as any)?.data ?? []).map((c: any) => [
+  const envelope = (data as any) ?? {};
+  const customerList: any[] = Array.isArray(data)
+    ? data
+    : Array.isArray(envelope.data)
+      ? envelope.data
+      : [];
+  const meta = envelope.meta ?? {};
+  const total = typeof meta.total === 'number' ? meta.total : customerList.length;
+
+  const rows = customerList.map((c: any) => [
     <span key="n" className="font-medium">{c.firstName ?? ''} {c.lastName ?? ''}</span>,
     <span key="e" className="text-xs text-charcoal-300">{c.email}</span>,
     <span key="o">{c.orderCount ?? 0}</span>,
@@ -20,12 +29,20 @@ export default function AdminCustomersPage() {
 
   return (
     <div>
-      <div className="relative max-w-md mb-6">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-300" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} className="input pl-9" placeholder="Search by email…" />
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <div className="relative max-w-md flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-300" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} className="input pl-9" placeholder="Search by email…" />
+        </div>
+        <p className="text-xs text-charcoal-300">{total} customer{total === 1 ? '' : 's'}</p>
       </div>
-      {isLoading ? <p className="text-charcoal-300">Loading…</p> :
-        <AdminTable headers={['Name', 'Email', 'Orders', 'Total Spent', 'Status']} rows={rows} />}
+      {isLoading ? (
+        <p className="text-charcoal-300">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-charcoal-300 text-sm">{search ? 'No customers match your search.' : 'No customers yet.'}</p>
+      ) : (
+        <AdminTable headers={['Name', 'Email', 'Orders', 'Total Spent', 'Status']} rows={rows} />
+      )}
     </div>
   );
 }
