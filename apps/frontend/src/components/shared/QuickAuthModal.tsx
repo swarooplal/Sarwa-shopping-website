@@ -166,25 +166,6 @@ export function QuickAuthModal() {
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Checking…' : 'Continue'}</button>
-                <div className="flex items-center justify-center gap-2 text-sm pt-2">
-                  <button
-                    type="button"
-                    disabled={!email.trim()}
-                    onClick={() => { setMode('login'); setError(null); }}
-                    className="text-charcoal hover:text-primary underline underline-offset-4 decoration-champagne disabled:opacity-40 disabled:no-underline"
-                  >
-                    Sign in
-                  </button>
-                  <span className="text-charcoal-300">·</span>
-                  <button
-                    type="button"
-                    disabled={!email.trim()}
-                    onClick={() => { setMode('register'); setError(null); }}
-                    className="text-charcoal hover:text-primary underline underline-offset-4 decoration-champagne disabled:opacity-40 disabled:no-underline font-medium"
-                  >
-                    Create new user
-                  </button>
-                </div>
               </form>
             )}
 
