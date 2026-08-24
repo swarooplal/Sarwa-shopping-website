@@ -21,7 +21,7 @@ const Schema = z.object({
   state: z.string().min(1),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/),
   country: z.string().default('India'),
-  paymentMethod: z.enum(['RAZORPAY', 'STRIPE', 'COD']),
+  paymentMethod: z.enum(['RAZORPAY', 'COD']),
 });
 type FormData = z.infer<typeof Schema>;
 
@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, couponCode, discount, clear } = useCart();
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { user } = useAuth();
 
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -38,11 +39,12 @@ export default function CheckoutPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(Schema),
-    defaultValues: { email: user?.email ?? '', country: 'India', paymentMethod: 'COD' },
+    defaultValues: { email: user?.email ?? '', country: 'India', paymentMethod: 'RAZORPAY' },
   });
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
+    setErrorMsg(null);
     try {
       // Create a backend cart to attach an order to
       const cartResp: any = await apiPost('/cart', {});
@@ -51,20 +53,44 @@ export default function CheckoutPage() {
         await apiPost('/cart/items', { productId: items[i].productId, quantity: items[i].quantity });
       }
       const order: any = await apiPost('/orders/checkout', {
-        ...data,
+        email: data.email,
         cartId: cartResp.id,
+        shippingAddress: {
+          fullName: data.fullName,
+          phone: data.phone,
+          line1: data.line1,
+          line2: data.line2,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          country: data.country,
+        },
+        paymentMethod: data.paymentMethod,
       });
 
       if (data.paymentMethod === 'RAZORPAY') {
-        const rzp: any = await apiPost('/payments/razorpay/create-order', { orderNumber: order.orderNumber });
-        const result = await openRazorpayCheckout({
-          keyId: rzp.keyId,
-          razorpayOrderId: rzp.razorpayOrderId,
-          amount: rzp.amount,
-          currency: rzp.currency,
-          orderNumber: order.orderNumber,
-          prefill: { name: data.fullName, email: data.email, contact: data.phone },
-        });
+        let rzp: any;
+        try {
+          rzp = await apiPost('/payments/razorpay/create-order', { orderNumber: order.orderNumber });
+        } catch (e: any) {
+          await apiPost(`/orders/${order.orderNumber}/cancel`, {}).catch(() => {});
+          throw new Error('Could not initiate payment. Please try again.');
+        }
+        let result;
+        try {
+          result = await openRazorpayCheckout({
+            keyId: rzp.keyId,
+            razorpayOrderId: rzp.razorpayOrderId,
+            amount: rzp.amount,
+            currency: rzp.currency,
+            orderNumber: order.orderNumber,
+            prefill: { name: data.fullName, email: data.email, contact: data.phone },
+          });
+        } catch (e: any) {
+          // User closed the widget or payment failed — cancel the pending order
+          await apiPost(`/orders/${order.orderNumber}/cancel`, {}).catch(() => {});
+          throw new Error(e?.message || 'Payment was cancelled.');
+        }
         await apiPost('/payments/razorpay/verify', {
           razorpay_order_id: result.razorpay_order_id,
           razorpay_payment_id: result.razorpay_payment_id,
@@ -76,9 +102,7 @@ export default function CheckoutPage() {
       clear();
       router.push(`/checkout/success?order=${order.orderNumber}`);
     } catch (e: any) {
-      // Stub success for offline / demo
-      clear();
-      router.push(`/checkout/success?order=SARWA-DEMO`);
+      setErrorMsg(e?.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -120,17 +144,26 @@ export default function CheckoutPage() {
 
         <section>
           <h2 className="font-serif text-2xl mb-4">Payment method</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {(['RAZORPAY', 'STRIPE', 'COD'] as const).map((p) => (
-              <label key={p} className="flex items-center gap-3 border border-charcoal-100 rounded-md p-4 cursor-pointer hover:border-champagne transition">
-                <input type="radio" value={p} {...register('paymentMethod')} />
-                <span className="text-sm">
-                  {p === 'COD' ? 'Cash on Delivery' : p === 'RAZORPAY' ? 'Razorpay (UPI, Cards, Netbanking)' : 'Stripe (International Cards)'}
-                </span>
-              </label>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="flex items-center gap-3 border border-charcoal-100 rounded-md p-4 cursor-pointer hover:border-champagne transition">
+              <input type="radio" value="RAZORPAY" {...register('paymentMethod')} />
+              <span className="text-sm">Razorpay <span className="text-charcoal-300">(UPI, Cards, Netbanking)</span></span>
+            </label>
+            <label className="flex items-center gap-3 border border-charcoal-100 rounded-md p-4 opacity-60 cursor-not-allowed">
+              <input type="radio" value="COD" disabled {...register('paymentMethod')} />
+              <span className="text-sm">
+                Cash on Delivery
+                <span className="block text-[11px] uppercase tracking-widest text-champagne-500 mt-0.5">Coming soon</span>
+              </span>
+            </label>
           </div>
         </section>
+
+        {errorMsg && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
 
         <button type="submit" disabled={submitting} className="btn-gold px-10">
           {submitting ? 'Placing order…' : `Place order · ${formatCurrency(total)}`}
