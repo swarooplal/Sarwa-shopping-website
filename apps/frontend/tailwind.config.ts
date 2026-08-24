@@ -12,68 +12,49 @@ const config: Config = {
         md: '768px',
         lg: '1024px',
         xl: '1280px',
-        '2xl': '1440px',
+        '2xl:': '1440px',
       },
     },
     extend: {
-      // ── Brand palette (logo-inspired) ─────────────────────────────
-      // Deep Burgundy / Maroon — primary brand color (formerly "primary")
-      // Terracotta / Coral — secondary accent (formerly "champagne")
-      // Warm Ivory / Cream — primary background (formerly "ivory")
-      // Soft Peach / Blush — subtle background sections
-      // Warm Brown — typography & secondary elements (formerly "charcoal")
-      // Off-white — cards & content areas
       colors: {
         primary: {
-          DEFAULT: '#6E2233', // deep burgundy / maroon
-          50: '#FBF3F4',
-          100: '#F4DCE0',
-          200: '#E5B0B9',
-          300: '#C97D8B',
-          400: '#A14C5E',
-          500: '#6E2233',
-          600: '#5A1B2A',
-          700: '#451422',
-          800: '#330E1A',
-          900: '#220811',
+          DEFAULT: '#1F3D2E',
+          50: '#F1F6F2',
+          100: '#DDE7DF',
+          200: '#B7CABB',
+          300: '#90AD97',
+          400: '#5C7E66',
+          500: '#1F3D2E',
+          600: '#1A3326',
+          700: '#152A1F',
+          800: '#102118',
+          900: '#0A1810',
         },
         ivory: {
-          DEFAULT: '#FAF4EC', // warm ivory / cream
+          DEFAULT: '#FBF7F0',
           50: '#FBF7F0',
           100: '#F4ECDF',
-          200: '#EADFC8',
+          200: '#E8DCC0',
         },
         champagne: {
-          // Renamed semantically: this slot now holds the terracotta accent.
-          DEFAULT: '#C5654A', // terracotta / coral
-          50: '#FBEDE7',
-          100: '#F5D2C2',
-          200: '#E9A98C',
-          300: '#D88060',
-          400: '#C5654A',
-          500: '#A24E37',
-          600: '#823C28',
-        },
-        peach: {
-          DEFAULT: '#F4D7C8', // soft peach / blush — subtle backgrounds
-          50: '#FCF1EA',
-          100: '#F8E0CF',
-          200: '#F4D7C8',
-          300: '#EDBFA5',
+          DEFAULT: '#C9A96E',
+          50: '#FBF6EB',
+          100: '#F2E7C8',
+          200: '#E6D29B',
+          300: '#D4B97D',
+          400: '#C9A96E',
+          500: '#B98E51',
+          600: '#9B7438',
         },
         charcoal: {
-          // Now warm brown for typography & secondary elements.
-          DEFAULT: '#3E2A20',
-          50: '#F5EFEA',
-          100: '#E6D9CE',
-          200: '#C7B0A0',
-          300: '#9E826F',
-          400: '#6F5446',
-          500: '#523B2D',
-          600: '#3E2A20',
-        },
-        cream: {
-          DEFAULT: '#FFFCF7', // off-white for cards / content areas
+          DEFAULT: '#2C2C2C',
+          50: '#F5F5F5',
+          100: '#E4E4E4',
+          200: '#C7C7C7',
+          300: '#9E9E9E',
+          400: '#5C5C5C',
+          500: '#3A3A3A',
+          600: '#2C2C2C',
         },
       },
       fontFamily: {
@@ -81,18 +62,15 @@ const config: Config = {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        // Softer, more boutique-y shadows — no harsh blacks, warm tint.
-        luxury: '0 24px 48px -20px rgba(62, 42, 32, 0.10)',
-        soft: '0 8px 24px -14px rgba(62, 42, 32, 0.08)',
-        // legacy "gold" shadow kept but rebranded to a warm terracotta glow
-        gold: '0 16px 32px -16px rgba(197, 101, 74, 0.30)',
+        luxury: '0 24px 48px -16px rgba(31, 61, 46, 0.18)',
+        soft: '0 10px 30px -12px rgba(0, 0, 0, 0.10)',
+        gold: '0 18px 36px -16px rgba(201, 169, 110, 0.45)',
       },
       letterSpacing: {
         widest: '0.25em',
       },
       borderRadius: {
-        // Slightly tighter — boutique sites rarely use big pillowy radii.
-        xl2: '0.875rem',
+        xl2: '1.25rem',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
