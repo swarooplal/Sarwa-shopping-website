@@ -119,8 +119,8 @@ export function QuickAuthModal() {
 
   const heading =
     mode === 'email' ? 'Continue to checkout'
-    : mode === 'register' ? 'Create your account'
-    : mode === 'login' ? 'Welcome back'
+    : mode === 'register' ? 'Sign up'
+    : mode === 'login' ? 'Sign in'
     : mode === 'forgot' ? 'Forgot your password?'
     : mode === 'reset' ? 'Choose a new password'
     : 'Password updated';
@@ -165,7 +165,53 @@ export function QuickAuthModal() {
                   </div>
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Checking…' : 'Continue'}</button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={submitting || !email.trim()}
+                    onClick={async () => {
+                      if (!email.trim()) return;
+                      setSubmitting(true); setError(null);
+                      try {
+                        const exists = await checkEmail(email.trim());
+                        if (exists) {
+                          setMode('login');
+                        } else {
+                          setError('No account found for this email. Use "Sign up" to create one.');
+                        }
+                      } catch (err: any) {
+                        setError(err?.response?.data?.error?.message ?? 'Could not verify email.');
+                      } finally { setSubmitting(false); }
+                    }}
+                    className="btn-outline"
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting || !email.trim()}
+                    onClick={async () => {
+                      if (!email.trim()) return;
+                      setSubmitting(true); setError(null);
+                      try {
+                        const exists = await checkEmail(email.trim());
+                        if (exists) {
+                          setError('An account already exists for this email. Use "Sign in" instead.');
+                        } else {
+                          setMode('register');
+                        }
+                      } catch (err: any) {
+                        setError(err?.response?.data?.error?.message ?? 'Could not verify email.');
+                      } finally { setSubmitting(false); }
+                    }}
+                    className="btn-primary"
+                  >
+                    Sign up
+                  </button>
+                </div>
+                <p className="text-xs text-center text-charcoal-300">
+                  Or just press <span className="font-medium">Continue</span> to auto-detect.
+                </p>
               </form>
             )}
 
@@ -191,10 +237,15 @@ export function QuickAuthModal() {
                   </div>
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Creating…' : 'Create account'}</button>
-                <button type="button" onClick={() => { setMode('email'); setError(null); }} className="text-xs text-charcoal-300 hover:text-charcoal w-full text-center inline-flex items-center justify-center gap-1">
-                  <ChevronLeft size={12} /> Use a different email
-                </button>
+                <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Creating…' : 'Sign up'}</button>
+                <div className="flex items-center justify-between text-xs">
+                  <button type="button" onClick={() => { setMode('login'); setError(null); }} className="text-champagne-500 link-underline">
+                    Already have an account? Sign in
+                  </button>
+                  <button type="button" onClick={() => { setMode('email'); setError(null); }} className="text-charcoal-300 hover:text-charcoal inline-flex items-center gap-1">
+                    <ChevronLeft size={12} /> Different email
+                  </button>
+                </div>
               </form>
             )}
 
