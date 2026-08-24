@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Heart, ShoppingBag, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import { useWishlist } from '@/store/wishlist';
+import { useAuth } from '@/store/auth';
+import { requireAuth } from '@/components/shared/QuickAuthModal';
 import { formatCurrency, calcDiscount } from '@/lib/utils';
 
 export function ProductInfo({ product }: { product: any }) {
@@ -16,36 +18,38 @@ export function ProductInfo({ product }: { product: any }) {
   const [size, setSize] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const router = useRouter();
+  const user = useAuth((s) => s.user);
   const add = useCart((s) => s.add);
   const openCart = useCart((s) => s.open);
   const wishHas = useWishlist((s) => s.has)(product.id);
   const wishToggle = useWishlist((s) => s.toggle);
 
-  const onAdd = () => {
-    add({
-      productId: product.id,
-      variantId: size ?? undefined,
-      name: product.name,
-      slug: product.slug,
-      image: product.images?.[0]?.url ?? '',
-      unitPrice: finalPrice,
-      quantity: qty,
-      size: size ?? undefined,
-    });
+  const buildItem = () => ({
+    productId: product.id,
+    variantId: size ?? undefined,
+    name: product.name,
+    slug: product.slug,
+    image: product.images?.[0]?.url ?? '',
+    unitPrice: finalPrice,
+    quantity: qty,
+    size: size ?? undefined,
+  });
+
+  const onAdd = async () => {
+    if (!user) {
+      await requireAuth();
+      if (!useAuth.getState().user) return;
+    }
+    add(buildItem());
     openCart();
   };
 
-  const onBuyNow = () => {
-    add({
-      productId: product.id,
-      variantId: size ?? undefined,
-      name: product.name,
-      slug: product.slug,
-      image: product.images?.[0]?.url ?? '',
-      unitPrice: finalPrice,
-      quantity: qty,
-      size: size ?? undefined,
-    });
+  const onBuyNow = async () => {
+    if (!user) {
+      await requireAuth();
+      if (!useAuth.getState().user) return;
+    }
+    add(buildItem());
     router.push('/checkout');
   };
 

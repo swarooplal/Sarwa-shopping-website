@@ -6,29 +6,23 @@ import { useAuth } from '@/store/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { apiPost, setAccessToken, apiGet } from '@/lib/api';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+const Schema = z.object({
+  identifier: z.string().min(3, 'Enter your email or phone number'),
 });
-const RegSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+type FormData = z.infer<typeof Schema>;
 
 export default function AccountPage() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const { login, register, user, logout } = useAuth();
+  const { user, quickAuth, logout } = useAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loginForm = useForm({ resolver: zodResolver(LoginSchema) });
-  const regForm = useForm({ resolver: zodResolver(RegSchema) });
+  const form = useForm<FormData>({
+    resolver: zodResolver(Schema),
+    defaultValues: { identifier: '' },
+  });
 
   if (user) {
     return (
@@ -45,80 +39,65 @@ export default function AccountPage() {
     );
   }
 
-  const onLogin = async (d: any) => {
-    setSubmitting(true); setError(null);
+  const onSubmit = async (data: FormData) => {
+    setSubmitting(true);
+    setError(null);
     try {
-      await login(d.email, d.password);
+      await quickAuth(data.identifier);
       router.push('/account');
     } catch (e: any) {
-      setError(e?.response?.data?.error?.message ?? 'Invalid credentials');
-    } finally { setSubmitting(false); }
-  };
-
-  const onRegister = async (d: any) => {
-    setSubmitting(true); setError(null);
-    try {
-      await register(d);
-      await login(d.email, d.password);
-      router.push('/account');
-    } catch (e: any) {
-      setError(e?.response?.data?.error?.message ?? 'Registration failed');
-    } finally { setSubmitting(false); }
+      setError(e?.response?.data?.error?.message ?? 'Could not sign in. Try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="container-x py-16 grid gap-12 md:grid-cols-2 max-w-5xl">
-      <div className="hidden md:block bg-ivory luxury-mask" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      <div
+        className="hidden md:block bg-ivory luxury-mask"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
       <div>
         <span className="eyebrow">SARWA · Account</span>
-        <h1 className="font-serif text-4xl mt-2">{mode === 'login' ? 'Welcome back' : 'Join SARWA'}</h1>
+        <h1 className="font-serif text-4xl mt-2">Continue with SARWA</h1>
         <p className="text-sm text-charcoal-300 mt-2">
-          {mode === 'login' ? 'Sign in to view orders and saved pieces.' : 'Create an account for faster checkout.'}
+          Enter your email or phone number. If it's your first time, we'll set up your account instantly.
         </p>
 
-        {mode === 'login' ? (
-          <form onSubmit={loginForm.handleSubmit(onLogin)} className="mt-8 space-y-4">
-            <div>
-              <label className="label">Email</label>
-              <div className="relative">
-                <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
-                <input className="input pl-10" type="email" {...loginForm.register('email')} />
-              </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-4">
+          <div>
+            <label className="label">Email or phone</label>
+            <div className="relative">
+              <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
+              <input
+                className="input pl-10"
+                placeholder="you@example.com or 9876543210"
+                autoComplete="username"
+                {...form.register('identifier')}
+              />
             </div>
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-300" />
-                <input className="input pl-10" type="password" {...loginForm.register('password')} />
-              </div>
-            </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Signing in…' : 'Sign in'}</button>
-            <p className="text-xs text-center text-charcoal-300">
-              New here?{' '}
-              <button type="button" onClick={() => setMode('register')} className="text-champagne-500 link-underline">
-                Create an account
-              </button>
-            </p>
-          </form>
-        ) : (
-          <form onSubmit={regForm.handleSubmit(onRegister)} className="mt-8 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <input className="input" placeholder="First name" {...regForm.register('firstName')} />
-              <input className="input" placeholder="Last name" {...regForm.register('lastName')} />
-            </div>
-            <input className="input" type="email" placeholder="Email" {...regForm.register('email')} />
-            <input className="input" type="password" placeholder="Password (8+ characters)" {...regForm.register('password')} />
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <button disabled={submitting} className="btn-primary w-full">{submitting ? 'Creating…' : 'Create account'}</button>
-            <p className="text-xs text-center text-charcoal-300">
-              Already have an account?{' '}
-              <button type="button" onClick={() => setMode('login')} className="text-champagne-500 link-underline">
-                Sign in
-              </button>
-            </p>
-          </form>
-        )}
+            {form.formState.errors.identifier && (
+              <p className="text-xs text-red-500 mt-1">{form.formState.errors.identifier.message}</p>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button disabled={submitting} className="btn-primary w-full">
+            {submitting ? 'Continuing…' : 'Continue'}
+          </button>
+
+          <p className="text-xs text-center text-charcoal-300 flex items-center justify-center gap-2">
+            <Phone size={12} />
+            No password needed. We'll sign you in or create your account.
+          </p>
+        </form>
       </div>
     </div>
   );

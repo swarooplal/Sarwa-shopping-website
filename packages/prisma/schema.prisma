@@ -19,7 +19,7 @@ model User {
   password      String
   firstName     String?
   lastName      String?
-  phone         String?
+  phone         String?   @unique
   avatar        String?
   role          String    @default("CUSTOMER") // ADMIN | MANAGER | EDITOR | STAFF | CUSTOMER
   isActive      Boolean   @default(true)
@@ -80,6 +80,7 @@ model Category {
 
   parent         Category?  @relation("CategoryToChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children       Category[] @relation("CategoryToChildren")
+  menuItems      MenuItem[]
   products       ProductOnCategory[]
 
   createdAt      DateTime   @default(now())
@@ -209,6 +210,9 @@ model MenuItem {
   link         String?
   icon         String?
   parentId     String?
+  // Reference the Category table directly so menus never duplicate category data.
+  categoryId   String?
+  // Legacy slug reference kept for backward compat with existing seeds; new writes prefer categoryId.
   categorySlug String?
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
@@ -217,9 +221,11 @@ model MenuItem {
 
   parent     MenuItem?  @relation("MenuToChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children   MenuItem[] @relation("MenuToChildren")
+  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   products   MenuItemProduct[]
 
   @@index([parentId, sortOrder])
+  @@index([categoryId])
 }
 
 model MenuItemProduct {

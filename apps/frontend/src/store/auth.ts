@@ -17,6 +17,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
+  quickAuth: (identifier: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => void;
   fetchMe: () => Promise<void>;
 }
@@ -43,6 +44,18 @@ export const useAuth = create<AuthState>()(
         const data: any = await apiPost('/auth/register', body);
         set({ isLoading: false });
         return data;
+      },
+      quickAuth: async (identifier, firstName, lastName) => {
+        set({ isLoading: true });
+        try {
+          const data: any = await apiPost('/auth/quick', { identifier, firstName, lastName });
+          setAccessToken(data.accessToken);
+          if (typeof window !== 'undefined') localStorage.setItem('sarwa_refresh', data.refreshToken);
+          set({ user: data.user, isLoading: false });
+        } catch (e) {
+          set({ isLoading: false });
+          throw e;
+        }
       },
       logout: () => {
         setAccessToken(null);
