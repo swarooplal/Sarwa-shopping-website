@@ -35,13 +35,25 @@ export default function OrdersPage() {
                 </div>
                 <span className="rounded-full bg-ivory px-3 py-1 text-[11px] uppercase tracking-widest">{o.status}</span>
               </div>
-              <div className="mt-4 space-y-2 text-sm">
+              <div className="mt-4 space-y-3 text-sm">
                 {o.items?.slice(0, 3).map((it: any) => (
-                  <div key={it.id} className="flex justify-between text-charcoal-300">
-                    <span>{it.name} × {it.quantity}</span>
-                    <span>{formatCurrency(Number(it.total))}</span>
+                  <div key={it.id} className="flex items-center gap-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={it.image || '/placeholder.jpg'}
+                      alt={it.name}
+                      className="h-14 w-14 rounded object-cover bg-ivory flex-shrink-0"
+                    />
+                    <div className="flex-1 text-charcoal">
+                      <p className="font-medium">{it.name}</p>
+                      <p className="text-xs text-charcoal-300">Qty {it.quantity}</p>
+                    </div>
+                    <span className="text-charcoal-300">{formatCurrency(Number(it.total))}</span>
                   </div>
                 ))}
+                {(o.items?.length ?? 0) > 3 && (
+                  <p className="text-xs text-charcoal-300">+{o.items.length - 3} more items</p>
+                )}
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-charcoal-100 pt-4">
                 <span className="text-sm text-charcoal-300">Total</span>

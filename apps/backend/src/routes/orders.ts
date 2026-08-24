@@ -32,7 +32,15 @@ router.post('/checkout', optionalAuth, async (req: AuthedRequest, res, next) => 
 
     const productIds = cart.items.map((i) => i.productId).filter(Boolean) as string[];
     const products = productIds.length
-      ? await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, sku: true } })
+      ? await prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            images: { orderBy: { sortOrder: 'asc' }, take: 1, select: { url: true } },
+          },
+        })
       : [];
     const productById = new Map(products.map((p) => [p.id, p]));
 
@@ -63,6 +71,7 @@ router.post('/checkout', optionalAuth, async (req: AuthedRequest, res, next) => 
               total: Number(i.unitPrice) * i.quantity,
               name: product?.name ?? 'Item',
               sku: product?.sku ?? null,
+              image: product?.images?.[0]?.url ?? null,
             };
           }),
         },
